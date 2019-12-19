@@ -6,18 +6,20 @@ ixheaacd_mps_complex_fft_64_asm:
     @LDR    r4,[sp]
     STMFD           sp!, {r0-r12, lr}
     LDR             r4, [sp, #0x38]
-    SUB             sp, sp, #0x44
-    LDR             r0, [sp, #0x48]
+    SUB             sp, sp, #0x28
+@       LDR     r4,[sp,#0x30]
+    LDR             r0, [sp, #0x2c]
+    @LDR      r12,[sp,#0x5c+4]
     EOR             r0, r0, r0, ASR #31
     CLZ             r0, r0
     SUB             r12, r0, #16        @dig_rev_shift = norm32(npoints) + 1 -16@
     SUB             r0, r0, #1
     RSB             r0, r0, #0x1e
     AND             r1, r0, #1
-    STR             r1, [sp, #0x30]
+    STR             r1, [sp, #0x14]
     MOV             r1, r0, ASR #1
-    LDR             r0, [sp, #0x48]     @npoints
-    STR             r1, [sp, #0x18]
+    LDR             r0, [sp, #0x2c]     @npoints
+    STR             r1, [sp, #-4]!
     MOV             lr, r0, LSL #1      @(npoints >>1) * 4
     MOV             r0, #0
     MOV             r12, r4
@@ -56,24 +58,24 @@ FIRST_STAGE_R4:
 
     STMIA           r3!, {r4-r11}
     BLT             FIRST_STAGE_R4
-    LDR             r1, [sp, #0x18]
-    LDR             r0, [sp, #0x48]
+    LDR             r1, [sp], #4
+    LDR             r0, [sp, #0x2c]
     MOV             r12, #0x40          @nodespacing = 64@
-    STR             r12, [sp, #0x38]
-    LDR             r12, [sp, #0x48]
+    STR             r12, [sp, #0x1c]
+    LDR             r12, [sp, #0x2c]
     SUB             r3, r3, r0, LSL #3
     SUBS            r1, r1, #1
-    STR             r3, [sp, #0x50]
+    STR             r3, [sp, #0x34]
     MOV             r4, r12, ASR #4
     MOV             r0, #4
-    STR             r4, [sp, #0x34]
-    STR             r1, [sp, #0x3c]
+    STR             r4, [sp, #0x18]
+    STR             r1, [sp, #0x20]
     BLE             EXIT
 OUTER_LOOP:
-    LDR             r1, [sp, #0x44]
-    LDR             r12, [sp, #0x50]    @WORD32 *data = ptr_y@
-    STR             r1, [sp, #0x2c]
-    LDR             r1, [sp, #0x34]
+    LDR             r1, [sp, #0x28]
+    LDR             r12, [sp, #0x34]    @WORD32 *data = ptr_y@
+    STR             r1, [sp, #0x10]
+    LDR             r1, [sp, #0x18]
 
     MOV             r0, r0, LSL #3      @(del<<1) * 4
 LOOP_TRIVIAL_TWIDDLE:
@@ -127,11 +129,11 @@ LOOP_TRIVIAL_TWIDDLE:
     BNE             LOOP_TRIVIAL_TWIDDLE
 
     MOV             r0, r0, ASR #3
-    LDR             r4, [sp, #0x38]
-    LDR             r3, [sp, #0x50]
+    LDR             r4, [sp, #0x1c]
+    LDR             r3, [sp, #0x34]
     MUL             r1, r0, r4
     ADD             r12, r3, #8
-    STR             r1, [sp, #0x40]
+    STR             r1, [sp, #0x24]
     MOV             r3, r1, ASR #2
     ADD             r3, r3, r1, ASR #3
     SUB             r3, r3, r1, ASR #4
@@ -139,25 +141,25 @@ LOOP_TRIVIAL_TWIDDLE:
     SUB             r3, r3, r1, ASR #6
     ADD             r3, r3, r1, ASR #7
     SUB             r3, r3, r1, ASR #8
-    STR             r3, [sp, #0x18]
+    STR             r3, [sp, #-4]!
 SECOND_LOOP:
-    LDR             r3, [sp, #0x2c]
-    LDR             r14, [sp, #0x34]
+    LDR             r3, [sp, #0x10+4]
+    LDR             r14, [sp, #0x18+4]
     MOV             r0, r0, LSL #3      @(del<<1) * 4
     LDR             r1, [r3, r4, LSL #3]! @ w1h = *(twiddles + 2*j)@
-    LDR             r2, [r3, #0x04]     @w1l = *(twiddles + 2*j + 1)@
+    LDR             r2, [r3, #4]        @w1l = *(twiddles + 2*j + 1)@
     LDR             r5, [r3, r4, LSL #3]! @w2h = *(twiddles + 2*(j<<1))@
-    LDR             r6, [r3, #0x04]     @w2l = *(twiddles + 2*(j<<1) + 1)@
+    LDR             r6, [r3, #4]        @w2l = *(twiddles + 2*(j<<1) + 1)@
     LDR             r7, [r3, r4, LSL #3]! @w3h = *(twiddles + 2*j + 2*(j<<1))@
-    LDR             r8, [r3, #0x04]     @w3l = *(twiddles + 2*j + 2*(j<<1) + 1)@
+    LDR             r8, [r3, #4]        @w3l = *(twiddles + 2*j + 2*(j<<1) + 1)@
 
-    STR             r4, [sp, #0x24]
-    STR             r1, [sp, #0x14]
-    STR             r2, [sp, #0x10]
-    STR             r5, [sp, #0x0c]
-    STR             r6, [sp, #0x08]
-    STR             r7, [sp, #0x04]
-    STR             r8, [sp]
+    STR             r4, [sp, #8+4]
+    STR             r1, [sp, #-4]
+    STR             r2, [sp, #-8]
+    STR             r5, [sp, #-12]
+    STR             r6, [sp, #-16]
+    STR             r7, [sp, #-20]
+    STR             r8, [sp, #-24]
 
 RADIX4_BFLY:
 
@@ -166,8 +168,8 @@ RADIX4_BFLY:
     LDRD            r10, [r12, r0]      @r10=x3r, r11=x3i
     SUBS            r14, r14, #1
 
-    LDR             r1, [sp, #0x14]
-    LDR             r2, [sp, #0x10]
+    LDR             r1, [sp, #-4]
+    LDR             r2, [sp, #-8]
 
     SMULL           r3, r4, r6, r2      @ixheaacd_mult32(x1r,w1l)
     LSR             r3, r3, #31
@@ -184,8 +186,8 @@ RADIX4_BFLY:
     ADD             r7, r7, r6
     SUB             r6, r4, r5          @
 
-    LDR             r1, [sp, #0x0c]
-    LDR             r2, [sp, #0x08]
+    LDR             r1, [sp, #-12]
+    LDR             r2, [sp, #-16]
 
     SMULL           r3, r4, r8, r2      @ixheaacd_mult32(x2r,w2l)
     LSR             r3, r3, #31
@@ -202,8 +204,8 @@ RADIX4_BFLY:
     ADD             r9, r9, r8
     SUB             r8, r4, r5          @
 
-    LDR             r1, [sp, #0x04]
-    LDR             r2, [sp]
+    LDR             r1, [sp, #-20]
+    LDR             r2, [sp, #-24]
 
     SMULL           r3, r4, r10, r2     @ixheaacd_mult32(x3r,w3l)
     LSR             r3, r3, #31
@@ -223,7 +225,7 @@ RADIX4_BFLY:
     @SUB   r12,r12,r0,lsl #1
     @LDRD     r4,[r12]      @r4=x0r,  r5=x0i
     LDR             r4, [r12, -r0, lsl #1]! @
-    LDR             r5, [r12, #0x04]
+    LDR             r5, [r12, #4]
 
 
     ADD             r4, r8, r4          @x0r = x0r + x2r@
@@ -257,45 +259,45 @@ RADIX4_BFLY:
     BNE             RADIX4_BFLY
     MOV             r0, r0, ASR #3
 
-    LDR             r1, [sp, #0x48]
-    LDR             r4, [sp, #0x24]
+    LDR             r1, [sp, #0x2c+4]
+    LDR             r4, [sp, #8+4]
     SUB             r1, r12, r1, LSL #3
-    LDR             r6, [sp, #0x38]
+    LDR             r6, [sp, #0x1c+4]
     ADD             r12, r1, #8
-    LDR             r7, [sp, #0x18]
+    LDR             r7, [sp, #0]
     ADD             r4, r4, r6
     CMP             r4, r7
     BLE             SECOND_LOOP
 
 SECOND_LOOP_2:
-    LDR             r3, [sp, #0x2c]
-    LDR             r14, [sp, #0x34]
+    LDR             r3, [sp, #0x10+4]
+    LDR             r14, [sp, #0x18+4]
     MOV             r0, r0, LSL #3      @(del<<1) * 4
 
     LDR             r1, [r3, r4, LSL #3]! @ w1h = *(twiddles + 2*j)@
-    LDR             r2, [r3, #0x04]     @w1l = *(twiddles + 2*j + 1)@
+    LDR             r2, [r3, #4]        @w1l = *(twiddles + 2*j + 1)@
     LDR             r5, [r3, r4, LSL #3]! @w2h = *(twiddles + 2*(j<<1))@
-    LDR             r6, [r3, #0x04]     @w2l = *(twiddles + 2*(j<<1) + 1)@
+    LDR             r6, [r3, #4]        @w2l = *(twiddles + 2*(j<<1) + 1)@
     SUB             r3, r3, #2048       @ 512 *4
     LDR             r7, [r3, r4, LSL #3]! @w3h = *(twiddles + 2*j + 2*(j<<1))@
-    LDR             r8, [r3, #0x04]     @w3l = *(twiddles + 2*j + 2*(j<<1) + 1)@
+    LDR             r8, [r3, #4]        @w3l = *(twiddles + 2*j + 2*(j<<1) + 1)@
 
-    STR             r4, [sp, #0x24]
+    STR             r4, [sp, #8+4]
 
-    STR             r1, [sp, #0x14]
-    STR             r2, [sp, #0x10]
-    STR             r5, [sp, #0x0c]
-    STR             r6, [sp, #0x08]
-    STR             r7, [sp, #0x04]
-    STR             r8, [sp]
+    STR             r1, [sp, #-4]
+    STR             r2, [sp, #-8]
+    STR             r5, [sp, #-12]
+    STR             r6, [sp, #-16]
+    STR             r7, [sp, #-20]
+    STR             r8, [sp, #-24]
 
 RADIX4_BFLY_2:
     LDRD            r6, [r12, r0]!      @r6=x1r,  r7=x1i
     LDRD            r8, [r12, r0]!      @r8=x2r,  r9=x2i
     LDRD            r10, [r12, r0]      @r10=x3r, r11=x3i
     SUBS            r14, r14, #1
-    LDR             r1, [sp, #0x14]
-    LDR             r2, [sp, #0x10]
+    LDR             r1, [sp, #-4]
+    LDR             r2, [sp, #-8]
 
     SMULL           r3, r4, r6, r2      @ixheaacd_mult32(x1r,w1l)
     LSR             r3, r3, #31
@@ -312,8 +314,8 @@ RADIX4_BFLY_2:
     ADD             r7, r7, r6
     SUB             r6, r4, r5          @
 
-    LDR             r1, [sp, #0x0c]
-    LDR             r2, [sp, #0x08]
+    LDR             r1, [sp, #-12]
+    LDR             r2, [sp, #-16]
 
     SMULL           r3, r4, r8, r2      @ixheaacd_mult32(x2r,w2l)
     LSR             r3, r3, #31
@@ -330,8 +332,8 @@ RADIX4_BFLY_2:
     ADD             r9, r9, r8
     SUB             r8, r4, r5          @
 
-    LDR             r1, [sp, #0x04]
-    LDR             r2, [sp]
+    LDR             r1, [sp, #-20]
+    LDR             r2, [sp, #-24]
 
     SMULL           r3, r4, r10, r2     @ixheaacd_mult32(x3r,w3l)
     LSR             r3, r3, #31
@@ -351,7 +353,7 @@ RADIX4_BFLY_2:
     @SUB    r12,r12,r0,lsl #1
     @LDRD     r4,[r12]      @r4=x0r,  r5=x0i
     LDR             r4, [r12, -r0, lsl #1]! @
-    LDR             r5, [r12, #0x04]
+    LDR             r5, [r12, #4]
 
 
     ADD             r4, r8, r4          @x0r = x0r + x2r@
@@ -385,39 +387,39 @@ RADIX4_BFLY_2:
     BNE             RADIX4_BFLY_2
     MOV             r0, r0, ASR #3
 
-    LDR             r1, [sp, #0x48]
-    LDR             r4, [sp, #0x24]
+    LDR             r1, [sp, #0x2c+4]
+    LDR             r4, [sp, #8+4]
     SUB             r1, r12, r1, LSL #3
-    LDR             r6, [sp, #0x38]
+    LDR             r6, [sp, #0x1c+4]
     ADD             r12, r1, #8
-    LDR             r7, [sp, #0x40]
+    LDR             r7, [sp, #0x24+4]
     ADD             r4, r4, r6
     CMP             r4, r7, ASR #1
     BLE             SECOND_LOOP_2
-    LDR             r7, [sp, #0x18]
+    LDR             r7, [sp, #0]
     CMP             r4, r7, LSL #1
     BGT             SECOND_LOOP_4
 
 SECOND_LOOP_3:
-    LDR             r3, [sp, #0x2c]
-    LDR             r14, [sp, #0x34]
+    LDR             r3, [sp, #0x10+4]
+    LDR             r14, [sp, #0x18+4]
     MOV             r0, r0, LSL #3      @(del<<1) * 4
 
     LDR             r1, [r3, r4, LSL #3]! @ w1h = *(twiddles + 2*j)@
-    LDR             r2, [r3, #0x04]     @w1l = *(twiddles + 2*j + 1)@
+    LDR             r2, [r3, #4]        @w1l = *(twiddles + 2*j + 1)@
     SUB             r3, r3, #2048       @ 512 *4
     LDR             r5, [r3, r4, LSL #3]! @w2h = *(twiddles + 2*(j<<1))@
-    LDR             r6, [r3, #0x04]     @w2l = *(twiddles + 2*(j<<1) + 1)@
+    LDR             r6, [r3, #4]        @w2l = *(twiddles + 2*(j<<1) + 1)@
     LDR             r7, [r3, r4, LSL #3]! @w3h = *(twiddles + 2*j + 2*(j<<1))@
-    LDR             r8, [r3, #0x04]     @w3l = *(twiddles + 2*j + 2*(j<<1) + 1)@
+    LDR             r8, [r3, #4]        @w3l = *(twiddles + 2*j + 2*(j<<1) + 1)@
 
-    STR             r4, [sp, #0x24]
-    STR             r1, [sp, #0x14]
-    STR             r2, [sp, #0x10]
-    STR             r5, [sp, #0x0c]
-    STR             r6, [sp, #0x08]
-    STR             r7, [sp, #0x04]
-    STR             r8, [sp]
+    STR             r4, [sp, #8+4]
+    STR             r1, [sp, #-4]
+    STR             r2, [sp, #-8]
+    STR             r5, [sp, #-12]
+    STR             r6, [sp, #-16]
+    STR             r7, [sp, #-20]
+    STR             r8, [sp, #-24]
 
 
 RADIX4_BFLY_3:
@@ -426,8 +428,8 @@ RADIX4_BFLY_3:
     LDRD            r10, [r12, r0]      @r10=x3r, r11=x3i
     SUBS            r14, r14, #1
 
-    LDR             r1, [sp, #0x14]
-    LDR             r2, [sp, #0x10]
+    LDR             r1, [sp, #-4]
+    LDR             r2, [sp, #-8]
 
     SMULL           r3, r4, r6, r2      @ixheaacd_mult32(x1r,w1l)
     LSR             r3, r3, #31
@@ -444,8 +446,8 @@ RADIX4_BFLY_3:
     ADD             r7, r7, r6
     SUB             r6, r4, r5          @
 
-    LDR             r1, [sp, #0x0c]
-    LDR             r2, [sp, #0x08]
+    LDR             r1, [sp, #-12]
+    LDR             r2, [sp, #-16]
 
     SMULL           r3, r4, r8, r2      @ixheaacd_mult32(x2r,w2l)
     LSR             r3, r3, #31
@@ -462,8 +464,8 @@ RADIX4_BFLY_3:
     ADD             r8, r9, r8
     SUB             r9, r5, r4          @
 
-    LDR             r1, [sp, #0x04]
-    LDR             r2, [sp]
+    LDR             r1, [sp, #-20]
+    LDR             r2, [sp, #-24]
 
     SMULL           r3, r4, r10, r2     @ixheaacd_mult32(x3r,w3l)
     LSR             r3, r3, #31
@@ -483,7 +485,7 @@ RADIX4_BFLY_3:
     @SUB    r12,r12,r0,lsl #1
     @LDRD     r4,[r12]      @r4=x0r,  r5=x0i
     LDR             r4, [r12, -r0, lsl #1]! @
-    LDR             r5, [r12, #0x04]
+    LDR             r5, [r12, #4]
 
 
     ADD             r4, r8, r4          @x0r = x0r + x2r@
@@ -517,38 +519,38 @@ RADIX4_BFLY_3:
     BNE             RADIX4_BFLY_3
     MOV             r0, r0, ASR #3
 
-    LDR             r1, [sp, #0x48]
-    LDR             r4, [sp, #0x24]
+    LDR             r1, [sp, #0x2c+4]
+    LDR             r4, [sp, #8+4]
     SUB             r1, r12, r1, LSL #3
-    LDR             r6, [sp, #0x38]
+    LDR             r6, [sp, #0x1c+4]
     ADD             r12, r1, #8
-    LDR             r7, [sp, #0x18]
+    LDR             r7, [sp, #0]
     ADD             r4, r4, r6
     CMP             r4, r7, LSL #1
     BLE             SECOND_LOOP_3
 
 SECOND_LOOP_4:
-    LDR             r3, [sp, #0x2c]
-    LDR             r14, [sp, #0x34]
+    LDR             r3, [sp, #0x10+4]
+    LDR             r14, [sp, #0x18+4]
     MOV             r0, r0, LSL #3      @(del<<1) * 4
 
     LDR             r1, [r3, r4, LSL #3]! @ w1h = *(twiddles + 2*j)@
-    LDR             r2, [r3, #0x04]     @w1l = *(twiddles + 2*j + 1)@
+    LDR             r2, [r3, #4]        @w1l = *(twiddles + 2*j + 1)@
     SUB             r3, r3, #2048       @ 512 *4
     LDR             r5, [r3, r4, LSL #3]! @w2h = *(twiddles + 2*(j<<1))@
-    LDR             r6, [r3, #0x04]     @w2l = *(twiddles + 2*(j<<1) + 1)@
+    LDR             r6, [r3, #4]        @w2l = *(twiddles + 2*(j<<1) + 1)@
     SUB             r3, r3, #2048       @ 512 *4
     LDR             r7, [r3, r4, LSL #3]! @w3h = *(twiddles + 2*j + 2*(j<<1))@
-    LDR             r8, [r3, #0x04]     @w3l = *(twiddles + 2*j + 2*(j<<1) + 1)@
+    LDR             r8, [r3, #4]        @w3l = *(twiddles + 2*j + 2*(j<<1) + 1)@
 
 
-    STR             r4, [sp, #0x24]
-    STR             r1, [sp, #0x14]
-    STR             r2, [sp, #0x10]
-    STR             r5, [sp, #0x0c]
-    STR             r6, [sp, #0x08]
-    STR             r7, [sp, #0x04]
-    STR             r8, [sp]
+    STR             r4, [sp, #8+4]
+    STR             r1, [sp, #-4]
+    STR             r2, [sp, #-8]
+    STR             r5, [sp, #-12]
+    STR             r6, [sp, #-16]
+    STR             r7, [sp, #-20]
+    STR             r8, [sp, #-24]
 
 RADIX4_BFLY_4:
     LDRD            r6, [r12, r0]!      @r6=x1r,  r7=x1i
@@ -556,8 +558,8 @@ RADIX4_BFLY_4:
     LDRD            r10, [r12, r0]      @r10=x3r, r11=x3i
     SUBS            r14, r14, #1
 
-    LDR             r1, [sp, #0x14]
-    LDR             r2, [sp, #0x10]
+    LDR             r1, [sp, #-4]
+    LDR             r2, [sp, #-8]
 
     SMULL           r3, r4, r6, r2      @ixheaacd_mult32(x1r,w1l)
     LSR             r3, r3, #31
@@ -574,8 +576,8 @@ RADIX4_BFLY_4:
     ADD             r7, r7, r6
     SUB             r6, r4, r5          @
 
-    LDR             r1, [sp, #0x0c]
-    LDR             r2, [sp, #0x08]
+    LDR             r1, [sp, #-12]
+    LDR             r2, [sp, #-16]
 
     SMULL           r3, r4, r8, r2      @ixheaacd_mult32(x2r,w2l)
     LSR             r3, r3, #31
@@ -592,8 +594,8 @@ RADIX4_BFLY_4:
     ADD             r8, r9, r8
     SUB             r9, r5, r4          @
 
-    LDR             r1, [sp, #0x04]
-    LDR             r2, [sp]
+    LDR             r1, [sp, #-20]
+    LDR             r2, [sp, #-24]
 
     SMULL           r3, r4, r10, r2     @ixheaacd_mult32(x3r,w3l)
     LSR             r3, r3, #31
@@ -613,7 +615,7 @@ RADIX4_BFLY_4:
     @SUB    r12,r12,r0,lsl #1
     @LDRD     r4,[r12]      @r4=x0r,  r5=x0i
     LDR             r4, [r12, -r0, lsl #1]! @
-    LDR             r5, [r12, #0x04]
+    LDR             r5, [r12, #4]
 
 
     ADD             r4, r8, r4          @x0r = x0r + x2r@
@@ -646,45 +648,47 @@ RADIX4_BFLY_4:
     BNE             RADIX4_BFLY_4
     MOV             r0, r0, ASR #3
 
-    LDR             r1, [sp, #0x48]
-    LDR             r4, [sp, #0x24]
+    LDR             r1, [sp, #0x2c+4]
+    LDR             r4, [sp, #8+4]
     SUB             r1, r12, r1, LSL #3
-    LDR             r6, [sp, #0x38]
+    LDR             r6, [sp, #0x1c+4]
     ADD             r12, r1, #8
-    LDR             r7, [sp, #0x40]
+    LDR             r7, [sp, #0x24+4]
     ADD             r4, r4, r6
     CMP             r4, r7
     BLT             SECOND_LOOP_4
+    ADD             sp, sp, #4
 
-    LDR             r1, [sp, #0x38]
+    LDR             r1, [sp, #0x1c]
     MOV             r0, r0, LSL #2
     MOV             r1, r1, ASR #2
-    STR             r1, [sp, #0x38]
-    LDR             r1, [sp, #0x34]
+    STR             r1, [sp, #0x1c]
+    LDR             r1, [sp, #0x18]
     MOV             r1, r1, ASR #2
-    STR             r1, [sp, #0x34]
-    LDR             r1, [sp, #0x3c]
+    STR             r1, [sp, #0x18]
+    LDR             r1, [sp, #0x20]
     SUBS            r1, r1, #1
-    STR             r1, [sp, #0x3c]
+    STR             r1, [sp, #0x20]
     BGT             OUTER_LOOP
 
-    LDR             r1, [sp, #0x30]
+    LDR             r1, [sp, #0x14]
     CMP             r1, #0
     BEQ             EXIT
-    LDR             r12, [sp, #0x38]
-    LDR             r1, [sp, #0x44]
+    LDR             r12, [sp, #0x1c]
+    LDR             r1, [sp, #0x28]
     CMP             r12, #0
+    LDRNE           r12, [sp, #0x1c]
     MOVEQ           r4, #1
     MOVNE           r4, r12, LSL #1
     MOVS            r3, r0
     BEQ             EXIT
 
     MOV             r3, r3, ASR #1
-    LDR             r5, [sp, #0x50]
+    LDR             r5, [sp, #0x34]
     MOV             r0, r0, LSL #3      @(del<<1) * 4
-    STR             r1, [sp, #0x18]
+    STR             r1, [sp, #-4]
 
 EXIT:
-    ADD             sp, sp, #0x54
+    ADD             sp, sp, #0x38
     LDMFD           sp!, {r4-r12, pc}
 

@@ -324,11 +324,8 @@ WORD32 ixheaacd_decode_init(
                     .str_usac_element_config[ele_id]
                     .str_usac_mps212_config);
 
-          if (ixheaacd_mps_create(&aac_dec_handle->mps_dec_handle,
-                                  bs_frame_length, bs_residual_coding,
-                                  ptr_usac_mps212_config)) {
-            return -1;
-          }
+          ixheaacd_mps_create(&aac_dec_handle->mps_dec_handle, bs_frame_length,
+                              bs_residual_coding, ptr_usac_mps212_config);
         }
         break;
       }
@@ -428,7 +425,7 @@ WORD32 ixheaacd_dec_data_init(VOID *handle,
   err_code =
       ixheaacd_decode_init(handle, pstr_frame_data->str_layer.sample_rate_layer,
                            usac_data, pstr_stream_config);
-  if (err_code != 0) return err_code;
+  if (err_code == -1) return -1;
 
   for (i_ch = 0; i_ch < MAX_NUM_CHANNELS; i_ch++) {
     if (usac_data->tw_mdct[0] == 1) {
@@ -559,7 +556,7 @@ WORD32 ixheaacd_decode_create(ia_exhaacplus_dec_api_struct *handle,
             handle->aac_config.ui_sbr_mode = 0;
         }
 
-        if (err != 0) return err;
+        if (err == -1) return -1;
 
         break;
 

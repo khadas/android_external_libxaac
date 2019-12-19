@@ -80,7 +80,6 @@
 
 #include "ixheaacd_multichannel.h"
 #include "ixheaacd_headerdecode.h"
-#include "ixheaacd_error_standards.h"
 
 WORD32 ixheaacd_latm_au_chunk_length_info(
     struct ia_bit_buf_struct *it_bit_buff) {
@@ -151,7 +150,7 @@ static UWORD32 ixheaacd_latm_get_value(ia_bit_buf_struct *it_bit_buff) {
            ixheaacd_read_bits_buf(it_bit_buff, 8);
 }
 
-IA_ERRORCODE ixheaacd_latm_stream_mux_config(
+WORD32 ixheaacd_latm_stream_mux_config(
     struct ia_bit_buf_struct *it_bit_buff, ixheaacd_latm_struct *latm_element,
     ia_aac_dec_state_struct *aac_state_struct,
     ia_sampling_rate_info_struct *sample_rate_info) {
@@ -160,7 +159,7 @@ IA_ERRORCODE ixheaacd_latm_stream_mux_config(
   WORD32 bytes_consumed;
   WORD32 audio_mux_version_a;
   UWORD32 tara_buf_fullness;
-  IA_ERRORCODE error_code = AAC_DEC_OK;
+  WORD32 error_code = AAC_DEC_OK;
   ixheaacd_latm_layer_info *layer_info = 0;
 
   latm_element->audio_mux_version = ixheaacd_read_bits_buf(it_bit_buff, 1);
@@ -179,12 +178,12 @@ IA_ERRORCODE ixheaacd_latm_stream_mux_config(
 
     latm_element->num_sub_frames = ixheaacd_read_bits_buf(it_bit_buff, 6) + 1;
 
-    if (latm_element->num_sub_frames != 1)
-      return IA_ENHAACPLUS_DEC_EXE_FATAL_INVALID_LOAS_HEADER;
+    if (latm_element->num_sub_frames != 1) {
+      error_code = IA_ENHAACPLUS_DEC_EXE_FATAL_INVALID_LOAS_HEADER;
+      return error_code;
+    }
 
     latm_element->num_program = ixheaacd_read_bits_buf(it_bit_buff, 4) + 1;
-
-    if (latm_element->num_program > LATM_MAX_PROG) return IA_FATAL_ERROR;
 
     for (prog = 0; prog < latm_element->num_program; prog++) {
       latm_element->num_layer = ixheaacd_read_bits_buf(it_bit_buff, 3) + 1;
@@ -251,7 +250,8 @@ IA_ERRORCODE ixheaacd_latm_stream_mux_config(
             break;
 
           default:
-            return IA_ENHAACPLUS_DEC_EXE_FATAL_INVALID_LOAS_HEADER;
+            error_code = IA_ENHAACPLUS_DEC_EXE_FATAL_INVALID_LOAS_HEADER;
+            return error_code;
         }
       }
     }
@@ -284,12 +284,12 @@ IA_ERRORCODE ixheaacd_latm_stream_mux_config(
   return (error_code);
 }
 
-IA_ERRORCODE ixheaacd_latm_audio_mux_element(
+WORD32 ixheaacd_latm_audio_mux_element(
     struct ia_bit_buf_struct *it_bit_buff, ixheaacd_latm_struct *latm_element,
     ia_aac_dec_state_struct *aac_state_struct,
     ia_sampling_rate_info_struct *sample_rate_info) {
   UWORD32 i;
-  IA_ERRORCODE error_code = AAC_DEC_OK;
+  WORD32 error_code = AAC_DEC_OK;
 
   ixheaacd_read_bits_buf(it_bit_buff, 13);
 

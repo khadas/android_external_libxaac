@@ -79,9 +79,9 @@ extern ia_huff_cld_nodes_struct ixheaacd_huff_cld_nodes;
 extern ia_huff_icc_nodes_struct ixheaacd_huff_icc_nodes;
 extern ia_huff_res_nodes_struct ixheaacd_huff_reshape_nodes;
 
-WORD32 ixheaacd_mps_create(ia_mps_dec_state_struct* self, WORD32 bs_frame_len,
-                           WORD32 residual_coding,
-                           ia_usac_dec_mps_config_struct* mps212_config) {
+VOID ixheaacd_mps_create(ia_mps_dec_state_struct* self, WORD32 bs_frame_len,
+                         WORD32 residual_coding,
+                         ia_usac_dec_mps_config_struct* mps212_config) {
   WORD32 num_ch;
   WORD32 err_code = 0;
 
@@ -108,8 +108,6 @@ WORD32 ixheaacd_mps_create(ia_mps_dec_state_struct* self, WORD32 bs_frame_len,
   }
 
   err_code = ixheaacd_mps_header_decode(self);
-
-  if (err_code != 0) return err_code;
 
   if ((self->residual_coding) && (self->res_bands > 0)) self->res_ch_count++;
 
@@ -149,7 +147,7 @@ WORD32 ixheaacd_mps_create(ia_mps_dec_state_struct* self, WORD32 bs_frame_len,
   memset(self->opd_smooth.smooth_r_phase, 0,
          MAX_PARAMETER_BANDS * sizeof(WORD32));
 
-  return 0;
+  return;
 }
 
 static FLOAT32 ixheaacd_tsd_mul_re[] = {
@@ -302,9 +300,8 @@ WORD32 ixheaacd_mps_apply(ia_mps_dec_state_struct* self,
 
   self->present_time_slot = 0;
 
-  err = ixheaacd_mps_frame_decode(self);
+  ixheaacd_mps_frame_decode(self);
 
-  if (err != 0) return err;
   ixheaacd_mps_qmf_hyb_analysis(self);
 
   ixheaacd_pre_and_mix_matrix_calculation(self);
@@ -1426,8 +1423,6 @@ WORD32 ixheaacd_mps_ecdatapairdec(ia_handle_bit_buf_struct it_bit_buff,
         diff_type[1] = data;
       }
     }
-
-    if (data_bands <= 0) return -1;
 
     if (!ixheaacd_huff_decode(it_bit_buff, data_array[0], data_array[1],
                               data_type, diff_type[0], diff_type[1],
